@@ -142,5 +142,9 @@ func (s DOAJ) Iterate(r io.Reader) (<-chan interface{}, error) {
 
 func (r *Response) ToIntermediateSchema() (*finc.IntermediateSchema, error) {
 	output := finc.NewIntermediateSchema()
+	index := r.Source.Index
+	for _, l := range index.Language {
+		output.Languages = append(output.Languages, ReverseReferenceName(l))
+	}
 	return output, nil
 }
