@@ -3,10 +3,19 @@ package doaj
 
 import (
 	"bufio"
+	"encoding/json"
 	"io"
 	"log"
 
 	"github.com/miku/span"
+	"github.com/miku/span/finc"
+)
+
+const (
+	// Internal bookkeeping.
+	SourceID = "28"
+	// BatchSize for grouped channel transport.
+	BatchSize = 25000
 )
 
 type Response struct {
@@ -86,18 +95,52 @@ type BibJson struct {
 	Year       string       `json:"year"`
 }
 
-var DOAJ span.Source
+type DOAJ struct{}
 
-func (s *DOAJ) Iterate(r io.Reader) (chan interface{}, error) {
+// NewBatch wraps up a new batch for channel com.
+func NewBatch(lines []string) span.Batcher {
+	batch := span.Batcher{
+		Apply: func(s string) (span.Importer, error) {
+			doc := new(Response)
+			err := json.Unmarshal([]byte(s), doc)
+			if err != nil {
+				return doc, err
+			}
+			return doc, nil
+		}, Items: make([]string, len(lines))}
+	copy(batch.Items, lines)
+	return batch
+}
+
+func (s DOAJ) Iterate(r io.Reader) (<-chan interface{}, error) {
 	ch := make(chan interface{})
 	reader := bufio.NewReader(r)
-	for {
-		line, err := reader.ReadString('\n')
-		if err == io.EOF {
-			break
+	i := 0
+	var lines []string
+	go func() {
+		for {
+			line, err := reader.ReadString('\n')
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatal(err)
+			}
+			i++
+			lines = append(lines, line)
+			if i == BatchSize {
+				ch <- NewBatch(lines)
+				lines = lines[:0]
+				i = 0
+			}
 		}
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
+		ch <- NewBatch(lines)
+		close(ch)
+	}()
+	return ch, nil
+}
+
+func (r *Response) ToIntermediateSchema() (*finc.IntermediateSchema, error) {
+	output := finc.NewIntermediateSchema()
+	return output, nil
 }

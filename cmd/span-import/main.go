@@ -13,6 +13,7 @@ import (
 
 	"github.com/miku/span"
 	"github.com/miku/span/crossref"
+	"github.com/miku/span/doaj"
 	"github.com/miku/span/jats"
 )
 
@@ -26,6 +27,7 @@ var (
 var formats = map[string]span.Source{
 	"crossref": crossref.Crossref{},
 	"jats":     jats.Jats{},
+	"doaj":     doaj.DOAJ{},
 }
 
 // worker iterates over batches
