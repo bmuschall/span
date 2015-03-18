@@ -1,6 +1,14 @@
 // Directory of open access journals.
 package doaj
 
+import (
+	"bufio"
+	"io"
+	"log"
+
+	"github.com/miku/span"
+)
+
 type Response struct {
 	ID     string   `json:"_id"`
 	Index  string   `json:"_index"`
@@ -76,4 +84,20 @@ type BibJson struct {
 	Subject    []Subject    `json:"subject"`
 	Title      string       `json:"title"`
 	Year       string       `json:"year"`
+}
+
+var DOAJ span.Source
+
+func (s *DOAJ) Iterate(r io.Reader) (chan interface{}, error) {
+	ch := make(chan interface{})
+	reader := bufio.NewReader(r)
+	for {
+		line, err := reader.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }
