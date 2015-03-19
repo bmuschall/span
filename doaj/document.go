@@ -101,7 +101,7 @@ type DOAJ struct{}
 func NewBatch(lines []string) span.Batcher {
 	batch := span.Batcher{
 		Apply: func(s string) (span.Importer, error) {
-			doc := new(Response)
+			doc := new(Document)
 			err := json.Unmarshal([]byte(s), doc)
 			if err != nil {
 				return doc, err
@@ -140,11 +140,13 @@ func (s DOAJ) Iterate(r io.Reader) (<-chan interface{}, error) {
 	return ch, nil
 }
 
-func (r *Response) ToIntermediateSchema() (*finc.IntermediateSchema, error) {
+func (doc *Document) ToIntermediateSchema() (*finc.IntermediateSchema, error) {
 	output := finc.NewIntermediateSchema()
-	index := r.Source.Index
-	for _, l := range index.Language {
-		output.Languages = append(output.Languages, ReverseReferenceName(l))
-	}
+
+	output.ISSN = doc.Index.ISSN
+	// TODO(miku): language code lookups
+	output.Languages = doc.Index.Language
+	output.ArticleTitle = doc.BibJson.Title
+
 	return output, nil
 }
